@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         AWS_REGION = 'us-east-1' // AWS region
-        SNYK_TOKEN = credentials('snyk_token')
     }
 
     stages {
@@ -12,7 +11,7 @@ pipeline {
                 withCredentials([
                     [
                         $class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'Jenkins3' // Replace with your AWS Jenkins credential ID
+                        credentialsId: 'Jenkins3'
                     ]
                 ]) {
                     sh 'aws sts get-caller-identity' // Verify AWS credentials
@@ -34,12 +33,16 @@ pipeline {
 
         stage('Snyk Security Scan') {
             steps {
-                snykSecurity(
-                    snykInstallation: 'Snyk-CLI', // Ensure this is the correct installation name
-                    snykTokenId: 'snyk_token',
-                    monitorProjectOnBuild: true,
-                    failOnIssues: false
-                )
+                withCredentials([
+                    string(credentialsId: 'snyk_token', variable: 'SNYK_TOKEN')
+                ]) {
+                    snykSecurity(
+                        snykInstallation: 'Snyk-CLI', // Ensure this is correctly configured in Jenkins
+                        snykTokenId: 'snyk_token',
+                        monitorProjectOnBuild: true,
+                        failOnIssues: false
+                    )
+                }
             }
         }
 
