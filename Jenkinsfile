@@ -1,14 +1,14 @@
 pipeline {
     agent any
     environment {
-        AWS_REGION = 'sa-east-1' // Specify your AWS region
+        AWS_REGION = 'us-east-1' // Specify your AWS region
     }
     stages {
         stage('Set AWS Credentials') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'AWS_SECRET_KEY' // Replace with your Jenkins credential ID
+                    credentialsId: 'Jenkins3' // Replace with your Jenkins credential ID
                 ]]) {
                     sh 'aws sts get-caller-identity' // Test AWS credentials
                 }
@@ -16,7 +16,7 @@ pipeline {
         }
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/bjett81/Week-6-Homework' // Replace with your Git repository URL
+                git branch: 'main', url: 'https://github.com/tiqsclass6/synk-jenkins' // Replace with your Git repository URL
             }
         }
         stage('Initialize Terraform') {
@@ -48,7 +48,25 @@ pipeline {
                 '''
             }
         }
+
+        stage('Terraform Destroy') {
+            steps {
+                input message: "Do you want to destroy the Terraform resources?", ok: "Destroy"
+                withCredentials([[ 
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'Jenkins3',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    terraform destroy -auto-approve
+                    '''
+                }
+            }
     }
+    
     post {
         success {
             echo 'Terraform deployment completed successfully!'
