@@ -21,7 +21,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/tiqsclass6/synk-jenkins'
+                git branch: 'main', url: 'https://github.com/tiqsclass6/synk-jenkins' // Clone repo
             }
         }
 
@@ -33,16 +33,12 @@ pipeline {
 
         stage('Snyk Security Scan') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'snyk_token', variable: 'SNYK_TOKEN')
-                ]) {
-                    snykSecurity(
-                        snykInstallation: 'Snyk-CLI', // Ensure this is correctly configured in Jenkins
-                        snykTokenId: 'snyk_token',
-                        monitorProjectOnBuild: true,
-                        failOnIssues: false
-                    )
-                }
+                snykSecurity(
+                    snykInstallation: 'Snyk-CLI',  // Ensure this matches your Jenkins Global Tool Configuration
+                    snykTokenId: 'snyk_token',    // Reference the Snyk API Token ID directly (no withCredentials)
+                    monitorProjectOnBuild: true,
+                    failOnIssues: false
+                )
             }
         }
 
