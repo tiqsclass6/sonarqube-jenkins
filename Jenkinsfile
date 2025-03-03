@@ -11,10 +11,16 @@ pipeline {
                 withCredentials([
                     [
                         $class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'Jenkins3'
+                        credentialsId: 'Jenkins3',
+                        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                     ]
                 ]) {
-                    sh 'aws sts get-caller-identity' // Verify AWS credentials
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    aws sts get-caller-identity // Verify AWS credentials
+                    '''
                 }
             }
         }
@@ -34,8 +40,8 @@ pipeline {
         stage('Snyk Security Scan') {
             steps {
                 snykSecurity(
-                    snykInstallation: 'Snyk-CLI',  // Ensure this matches your Jenkins Global Tool Configuration
-                    snykTokenId: 'snyk_token',    // Reference the Snyk API Token ID directly (no withCredentials)
+                    snykInstallation: 'Snyk-CLI',  // Ensure this matches Global Tool Configuration
+                    snykTokenId: 'snyk_token',    // Reference to Jenkins credential for Snyk API Token
                     monitorProjectOnBuild: true,
                     failOnIssues: false
                 )
@@ -57,7 +63,20 @@ pipeline {
         // Terraform Stages
         stage('Initialize Terraform') {
             steps {
-                sh 'terraform init'
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'Jenkins3',
+                        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                    ]
+                ]) {
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    terraform init
+                    '''
+                }
             }
         }
 
