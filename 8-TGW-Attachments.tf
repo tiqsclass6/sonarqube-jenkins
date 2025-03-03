@@ -21,11 +21,11 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "VPC-B-SaoPaulo-Dev-TGW-Attach
 }
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "VPC-C-SaoPaulo-Test-TGW-Attachment" {
-  subnet_ids            = [aws_subnet.vpc-C-private-sa-east-1c.id]
-  transit_gateway_id    = aws_ec2_transit_gateway.Brazil-TGW01.id
-  vpc_id                = aws_vpc.VPC-C-SaoPaulo-Test.id
+  subnet_ids         = [aws_subnet.vpc-C-private-sa-east-1c.id]
+  transit_gateway_id = aws_ec2_transit_gateway.Brazil-TGW01.id
+  vpc_id             = aws_vpc.VPC-C-SaoPaulo-Test.id
 
   tags = {
-    Name                = "VPC-C-SaoPaulo-Test-TGW-Attachment"
+    Name = "VPC-C-SaoPaulo-Test-TGW-Attachment"
   }
 }
