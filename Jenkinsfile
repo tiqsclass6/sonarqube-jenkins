@@ -17,6 +17,16 @@ pipeline {
             }
         }
 
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    if (fileExists('package.json')) {
+                        sh 'npm install'
+                    }
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 script {
@@ -33,16 +43,11 @@ pipeline {
             }
         }
 
-        stage('Scan') {
+        stage('Snyk Scan') {
             steps {
                 script {
-                    snykSecurity(
-                        organisation: 'TIQS',
-                        projectName: 'tiqsclass6/jfrog-cli',
-                        snykInstallation: 'SNYK_API',
-                        snykTokenId: 'snyk_token',
-                        targetFile: 'package.json'
-                    )
+                    sh 'ls -la'
+                    sh 'snyk test --file=./package.json'
                 }
             }
         }
@@ -79,12 +84,21 @@ pipeline {
             steps {
                 script {
                     snykSecurity(
-                        snykInstallation: 'SNYK_API',
+                        snykInstallation: 'Snyk-CLI',
                         snykTokenId: 'snyk_token',
                         monitorProjectOnBuild: true,
                         failOnIssues: false
                     )
                 }
+            }
+        }
+
+        stage('Terraform Destroy') {
+            steps {
+                input message: "Approve Terraform Destroy?", ok: "Destroy"
+                sh '''
+                terraform destroy -auto-approve
+                '''
             }
         }
     }
