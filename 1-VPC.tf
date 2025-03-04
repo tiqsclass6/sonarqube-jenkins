@@ -1,34 +1,34 @@
 # 1. Setup the three (3) Virtual Private Clouds (VPC)
 
-resource "aws_vpc" "VPC-A-SaoPaulo-Prod" {
+resource "aws_vpc" "VPC-A-Virginia-Prod" {
   cidr_block = "10.230.0.0/16"
 
   tags = {
-    Name     = "VPC-A-SaoPaulo-Prod"
+    Name     = "VPC-A-Virginia-Prod"
     Service  = "VPC"
-    Location = "Sao Paulo"
+    Location = "Virginia"
     Owner    = "TIQS"
   }
 }
 
-resource "aws_vpc" "VPC-B-SaoPaulo-Dev" {
+resource "aws_vpc" "VPC-B-Virginia-Dev" {
   cidr_block = "10.231.0.0/16"
 
   tags = {
-    Name     = "VPC-B-SaoPaulo-Dev"
+    Name     = "VPC-B-Virginia-Dev"
     Service  = "VPC"
-    Location = "Sao Paulo"
+    Location = "Virginia"
     Owner    = "TIQS"
   }
 }
 
-resource "aws_vpc" "VPC-C-SaoPaulo-Test" {
+resource "aws_vpc" "VPC-C-Virginia-Test" {
   cidr_block = "10.232.0.0/16"
 
   tags = {
-    Name     = "VPC-C-SaoPaulo-Test"
+    Name     = "VPC-C-Virginia-Test"
     Service  = "VPC"
-    Location = "Sao Paulo"
+    Location = "Virginia"
     Owner    = "TIQS"
   }
 }
