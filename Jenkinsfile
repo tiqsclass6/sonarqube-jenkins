@@ -62,6 +62,19 @@ pipeline {
             }
         }
 
+        stage('Update Dependencies') {
+            steps {
+                script {
+                    echo "Checking for outdated npm packages..."
+                    sh '''
+                    npm install -g npm-check-updates
+                    ncu -u
+                    npm install
+                    '''
+                }
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 script {
@@ -152,7 +165,7 @@ pipeline {
             }
         }
         
-        stage('Snyk Continuous Monitoring (Post-Deploy)') {
+        stage('Snyk Continuous Monitoring (Post-Deploy') {
             steps {
                 script {
                     echo "Running Snyk Continuous Monitoring after deployment..."
