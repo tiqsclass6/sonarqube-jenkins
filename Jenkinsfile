@@ -7,6 +7,7 @@ pipeline {
 
     environment {
         AWS_REGION = 'us-east-1' // AWS region
+        SNYK_TOKEN = credentials('SNYK_TOKEN') 
     }
 
     triggers {
@@ -18,7 +19,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'Jenkins1',
+                    credentialsId: 'snyk_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
@@ -57,7 +58,8 @@ pipeline {
             steps {
                 script {
                     echo "Installing Snyk..."
-                    sh 'chmod +x snyk.sh && ./snyk.sh'  // Run the uploaded Snyk installation script
+                    sh 'npm install -g snyk'
+                    sh 'snyk --version'
                 }
             }
         }
@@ -99,6 +101,9 @@ pipeline {
         stage('Snyk Scan') {
             steps {
                 script {
+                    echo "Authenticating with Snyk..."
+                    sh 'snyk auth $SNYK_TOKEN'
+
                     echo "Running Snyk security scan..."
                     sh 'ls -la'
 
@@ -118,7 +123,7 @@ pipeline {
             }
         }
 
-       stage('Validate Terraform') {
+        stage('Validate Terraform') {
             steps {
                 sh 'terraform validate'
             }
@@ -128,7 +133,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'Jenkins1',
+                    credentialsId: 'snyk_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
@@ -146,7 +151,7 @@ pipeline {
                 input message: "Approve Terraform Apply?", ok: "Deploy"
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'Jenkins1',
+                    credentialsId: 'snyk_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
@@ -165,7 +170,7 @@ pipeline {
             }
         }
         
-        stage('Snyk Continuous Monitoring (Post-Deploy') {
+        stage('Snyk Continuous Monitoring (Post-Deploy)') {
             steps {
                 script {
                     echo "Running Snyk Continuous Monitoring after deployment..."
@@ -173,7 +178,7 @@ pipeline {
                     try {
                         snykSecurity(
                             snykInstallation: 'Snyk-CLI',
-                            snykTokenId: 'snyk_token',
+                            snykTokenId: 'SNYK_TOKEN',
                             monitorProjectOnBuild: true,
                             failOnIssues: false
                         )
@@ -191,7 +196,7 @@ pipeline {
                 input message: "Do you want to destroy the Terraform resources?", ok: "Destroy"
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'Jenkins1',
+                    credentialsId: 'snyk_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
