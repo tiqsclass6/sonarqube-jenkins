@@ -5,52 +5,45 @@ pipeline {
         AWS_REGION = 'us-east-1' // AWS region
     }
 
-    stages {
-        stage('Set AWS Credentials') {
-            steps {
-                withCredentials([
-                    [
-                        $class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'Jenkins3',
-                        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                    ]
-                ]) {
-                    sh '''
-                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                    aws sts get-caller-identity # Verify AWS credentials
-                    '''
-                }
-            }
-        }
+    triggers {
+        cron('H 2 * * 1-5') // Runs Snyk monitoring every weekday at 2 AM
+    }
 
+    stages {
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/tiqsclass6/synk-jenkins'
+                sh 'ls -la'
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Building the project...'
+                script {
+                    if (fileExists('package.json')) {
+                        sh 'npm install'
+                    } else if (fileExists('requirements.txt')) {
+                        sh 'pip install -r requirements.txt'
+                    } else if (fileExists('pom.xml')) {
+                        sh 'mvn clean install'
+                    } else {
+                        echo "No recognized dependency file found. Skipping installation."
+                    }
+                }
             }
         }
 
-        stage('Snyk Security Scan (Pre-Deploy)') {
+        stage('Scan') {
             steps {
-                snykSecurity(
-                    snykInstallation: 'Snyk-CLI',
-                    snykTokenId: 'snyk_token',
-                    monitorProjectOnBuild: true,
-                    failOnIssues: false
-                )
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Running tests...'
+                script {
+                    snykSecurity(
+                        organisation: 'TIQS',
+                        projectName: 'tiqsclass6/jfrog-cli',
+                        snykInstallation: 'Snyk-CLI',
+                        snykTokenId: 'snyk_token',
+                        targetFile: 'package.json'
+                    )
+                }
             }
         }
 
@@ -84,12 +77,14 @@ pipeline {
 
         stage('Snyk Continuous Monitoring (Post-Deploy)') {
             steps {
-                snykSecurity(
-                    snykInstallation: 'Snyk-CLI',
-                    snykTokenId: 'snyk_token',
-                    monitorProjectOnBuild: true, // Enables continuous tracking in Snyk UI
-                    failOnIssues: false  // Monitoring should not block deployment
-                )
+                script {
+                    snykSecurity(
+                        snykInstallation: 'Snyk-CLI',
+                        snykTokenId: 'snyk_token',
+                        monitorProjectOnBuild: true,
+                        failOnIssues: false
+                    )
+                }
             }
         }
     }
@@ -98,15 +93,5 @@ pipeline {
         always {
             echo 'Pipeline execution completed. Monitoring continues...'
         }
-        success {
-            echo 'Deployment and security scans completed successfully!'
-        }
-        failure {
-            echo 'Pipeline execution failed! Check the logs for issues.'
-        }
-    }
-
-    triggers {
-        cron('H 2 * * 1-5') // Runs Snyk monitoring every weekday at 2 AM
     }
 }
