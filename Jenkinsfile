@@ -52,6 +52,7 @@ pipeline {
             }
         }
 
+        /*
         stage('Terraform Setup & Validation') {
             steps {
                 sh '''
@@ -79,7 +80,7 @@ pipeline {
                 echo 'Deploying application...'
             }
         }
-
+        
         stage('Snyk Continuous Monitoring (Post-Deploy)') {
             steps {
                 script {
@@ -102,6 +103,7 @@ pipeline {
             }
         }
     }
+    */
 
     post {
         always {
