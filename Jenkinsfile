@@ -99,34 +99,6 @@ pipeline {
             }
         }
 
-        stage('Upload SARIF to GitHub Code Scanning') {
-            steps {
-                withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_AUTH_TOKEN')]) {
-                    script {
-                        def COMMIT_SHA = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
-                        def REF = sh(script: "git symbolic-ref --short HEAD || git rev-parse HEAD", returnStdout: true).trim()
-
-                        echo "Uploading SARIF report to GitHub for commit: ${COMMIT_SHA}, ref: ${REF}"
-
-                        sh """
-                        curl -H "Authorization: token $GITHUB_AUTH_TOKEN" \
-                            -H "Accept: application/vnd.github.v3+json" \
-                            -X POST \
-                            -d @- https://api.github.com/repos/tiqsclass6/synk-jenkins/code-scanning/sarifs <<EOF
-                        {
-                        "commit_sha": "${COMMIT_SHA}",
-                        "ref": "refs/heads/${REF}",
-                        "sarif": "$(cat snyk.sarif | base64 -w0)"
-                        }
-                        EOF
-                        """
-                    }
-                }
-            }
-        }
-
-
-
         stage('Initialize Terraform') {
             steps {
                 sh 'terraform init'
