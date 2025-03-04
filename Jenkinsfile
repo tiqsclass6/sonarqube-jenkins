@@ -32,11 +32,25 @@ pipeline {
             }
         }
 
+        stage('Install Node.js & npm') {
+            steps {
+                script {
+                    echo "Installing Node.js and npm..."
+                    sh '''
+                    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+                    sudo apt-get install -y nodejs
+                    node -v
+                    npm -v
+                    '''
+                }
+            }
+        }
+
         stage('Install Snyk') {
             steps {
                 script {
                     echo "Installing Snyk..."
-                    sh 'chmod +x snyk.sh && ./snyk.sh'  
+                    sh 'chmod +x snyk.sh && ./snyk.sh'  // Run the uploaded Snyk installation script
                 }
             }
         }
@@ -50,7 +64,7 @@ pipeline {
                         echo "Node.js project detected. Installing dependencies..."
                         sh 'npm install || echo "npm install failed, check logs for details."'
                     } else if (fileExists('requirements.txt')) {
-                        echo "ython project detected. Installing dependencies..."
+                        echo "Python project detected. Installing dependencies..."
                         sh 'pip install -r requirements.txt || echo "pip install failed, check logs for details."'
                     } else if (fileExists('pom.xml')) {
                         echo "Java project detected. Running Maven build..."
