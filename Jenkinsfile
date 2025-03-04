@@ -1,4 +1,11 @@
 pipeline {
+
+agent {
+    docker {
+        image 'node:latest'
+    }
+}
+
     agent any
 
     environment {
