@@ -101,18 +101,21 @@ pipeline {
 
         stage('Upload SARIF to GitHub Code Scanning') {
             steps {
-                script {
-                    echo "Uploading SARIF report to GitHub..."
-                    sh '''
-                    curl -H "Authorization: token $TIQS_GITHUB_PAT" \
-                         -H "Accept: application/vnd.github.v3+json" \
-                         https://api.github.com/repos/tiqsclass6/synk-jenkins/code-scanning/sarifs \
-                         -X POST \
-                         -d @snyk.sarif
-                    '''
+                withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_AUTH_TOKEN')]) {
+                    script {
+                        echo "Uploading SARIF report to GitHub..."
+                        sh '''
+                        curl -H "Authorization: token $GITHUB_AUTH_TOKEN" \
+                            -H "Accept: application/vnd.github.v3+json" \
+                            -X POST \
+                            --data-binary @snyk.sarif \
+                            https://api.github.com/repos/tiqsclass6/synk-jenkins/code-scanning/sarifs
+                        '''
+                    }
                 }
             }
         }
+
 
         stage('Initialize Terraform') {
             steps {

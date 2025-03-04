@@ -7,6 +7,7 @@ This repository contains a **Jenkins pipeline** that automates:
 - **Code checkout from GitHub**
 - **Dependency installation**
 - **Security scanning with Snyk**
+- **Generating SARIF reports for GitHub Code Scanning**
 - **Terraform infrastructure deployment**
 - **Application deployment**
 - **Optional Terraform destroy process**
@@ -47,7 +48,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
 - Ensures **Snyk CLI** is installed globally using:
 
   ```sh
-  npm install -g snyk
+  npm install -g snyk snyk-to-sarif
   ```
 
 - Verifies installation using:
@@ -56,7 +57,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
   snyk --version
   ```
 
-- Required for **security vulnerability scanning**.
+- Required for **security vulnerability scanning and SARIF generation**.
 
 ### **4️⃣ Update Dependencies**
 
@@ -79,13 +80,19 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
 
   if a `package.json` file is found.
 
-### **6️⃣ Snyk Security Scan & Publish to Snyk.io**
+### **6️⃣ Snyk Security Scan & Generate SARIF Report**
 
 - **Authenticates with Snyk** using a securely stored API token (`SNYK_TOKEN`).
-- Runs security checks:
+- Runs security checks on **all project files**:
 
   ```sh
-  snyk test --org=<SNYK_ORG> --project-name=<SNYK_PROJECT>
+  snyk test --all-projects --json > snyk.json || echo "Snyk scan encountered issues, but pipeline continues."
+  ```
+
+- Converts the JSON output to **SARIF format** for GitHub Code Scanning:
+
+  ```sh
+  snyk-to-sarif < snyk.json > snyk.sarif
   ```
 
 - Publishes results to **Snyk.io** for continuous monitoring:
@@ -94,7 +101,20 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
   snyk monitor --org=<SNYK_ORG> --project-name=<SNYK_PROJECT>
   ```
 
-### **7️⃣ Initialize Terraform**
+### **7️⃣ Upload SARIF Report to GitHub Code Scanning**
+
+- Uses `curl` to upload the SARIF report to GitHub's **Code Scanning Dashboard**.
+- Ensures authentication using **GitHub Credentials** stored in Jenkins.
+
+  ```sh
+  curl -H "Authorization: token $GITHUB_AUTH_TOKEN" \
+       -H "Accept: application/vnd.github.v3+json" \
+       -X POST \
+       --data-binary @snyk.sarif \
+       https://api.github.com/repos/<GITHUB_REPO>/code-scanning/sarifs
+  ```
+
+### **8️⃣ Initialize Terraform**
 
 - Runs:
 
@@ -104,7 +124,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
 
   to **initialize Terraform** and configure the backend for storing the state.
 
-### **8️⃣ Validate Terraform**
+### **9️⃣ Validate Terraform**
 
 - Ensures the **Terraform configuration is valid** before applying changes.
 - Runs:
@@ -113,7 +133,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
   terraform validate
   ```
 
-### **9️⃣ Plan Terraform**
+### **🔯 Plan Terraform**
 
 - Generates an execution plan using:
 
@@ -123,7 +143,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
 
 - Uses AWS credentials to verify **the infrastructure changes before deployment**.
 
-### **🔟 Apply Terraform (Deploy Infrastructure)**
+### **💪 Apply Terraform (Deploy Infrastructure)**
 
 - **Requires manual approval** before applying infrastructure changes.
 - Once approved, runs:
@@ -134,12 +154,12 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
 
 - **Deploys AWS resources** according to the Terraform configuration.
 
-### **1️⃣1️⃣ Deploy Application**
+### **🏰 Deploy Application**
 
 - Deploys the application after infrastructure is provisioned.
 - Placeholder stage to include commands for **Docker/Kubernetes deployments** if needed.
 
-### **1️⃣2️⃣ Destroy Terraform (Optional)**
+### **🛠 Destroy Terraform (Optional)**
 
 - **Requires manual approval** before destroying infrastructure.
 - If approved, runs:
@@ -175,81 +195,25 @@ Before running the pipeline, ensure the following **Jenkins configurations**:
    - **Type:** Secret Text
    - **Value:** _(Your Snyk API Key)_
 
+3. **GitHub Token for SARIF Upload**
+   - **ID:** `GITHUB_TOKEN`
+   - **Type:** Secret Text
+   - **Value:** _(GitHub Personal Access Token with `security_events` & `repo` permissions)_
+
 ---
 
-## 🏗 How to Run the Pipeline
+## 💪 Next Steps
 
 1. **Commit the Jenkinsfile** to the GitHub repository.
-2. **Create a new Jenkins pipeline job** and set the **GitHub repository URL**.
-3. **Ensure AWS & Snyk credentials are added in Jenkins**.
-4. **Run the pipeline manually or configure a webhook for automatic triggers**.
+2. **Ensure AWS, Snyk, and GitHub credentials are added in Jenkins**.
+3. **Run the pipeline manually or configure a webhook for automatic triggers**.
 
 ---
 
-## 🔥 Snyk Installation & Authentication Script (`snyk.sh`)
-
-This script installs Snyk, ensures it's up to date, and authenticates it.
-
-```bash
-#!/bin/bash
-
-# Enable strict error handling
-set -euo pipefail
-
-echo "Installing Snyk Security Scan..."
-
-# Ensure Node.js and npm are installed
-if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
-    echo "ERROR: Node.js and npm are required to install Snyk."
-    echo "Please install Node.js (https://nodejs.org) and try again."
-    exit 1
-fi
-
-# Ensure SNYK_TOKEN is available
-if [[ -z "${SNYK_TOKEN:-}" ]]; then
-    echo "ERROR: SNYK_TOKEN environment variable is not set. Please configure it in Jenkins."
-    exit 1
-fi
-
-# Install or update Snyk globally using npm
-if command -v snyk >/dev/null 2>&1; then
-    echo "Snyk is already installed. Updating to the latest version..."
-    npm update -g snyk
-else
-    echo "Installing Snyk via npm..."
-    npm install -g snyk
-fi
-
-# Verify installation
-if command -v snyk >/dev/null 2>&1; then
-    echo "Snyk installed successfully!"
-    snyk --version
-else
-    echo "ERROR: Snyk installation failed."
-    exit 1
-fi
-
-# Authenticate with Snyk
-echo "Authenticating with Snyk..."
-snyk auth "$SNYK_TOKEN"
-
-echo "Snyk installation and authentication completed successfully."
-```
-
----
-
-## 📚 Additional Resources
-
-- [Jenkins Documentation](https://www.jenkins.io/doc/)
-- [Snyk CLI Guide](https://docs.snyk.io/)
-- [Terraform Documentation](https://developer.hashicorp.com/terraform/docs)
-
----
-
-## 🎯 Key Features & Benefits
+## 🔥 Key Features & Benefits
 
 ✅ **Automated security scanning with Snyk**  
-✅ **Prevents security vulnerabilities before deployment**  
+✅ **SARIF report upload for GitHub Code Scanning**  
 ✅ **Infrastructure automation using Terraform**  
 ✅ **Secure authentication using Jenkins Credentials**  
 ✅ **Approval-based Terraform deployment for controlled releases**  
