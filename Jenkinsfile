@@ -16,10 +16,10 @@ pipeline {
         stage('Set AWS Credentials') {
             steps {
                 withCredentials([
-                    $class: 'AmazonWebServicesCredentialsBinding',
+                    [$class: 'AmazonWebServicesCredentialsBinding',
                     credentialsId: 'snyk_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
                 ]) {
                     sh '''
                     export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
@@ -50,33 +50,6 @@ pipeline {
                     echo "Installing Snyk..."
                     sh 'npm install -g snyk snyk-to-sarif'
                     sh 'snyk --version'
-                }
-            }
-        }
-
-        stage('Update Dependencies') {
-            steps {
-                script {
-                    echo "Checking for outdated npm packages..."
-                    sh '''
-                    npm install -g npm-check-updates
-                    ncu -u
-                    npm install
-                    '''
-                }
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                script {
-                    echo "Checking for dependencies..."
-                    if (fileExists('package.json')) {
-                        echo "Node.js project detected. Installing dependencies..."
-                        sh 'npm install'
-                    } else {
-                        echo "No package.json found. Skipping dependency installation."
-                    }
                 }
             }
         }
@@ -117,9 +90,9 @@ pipeline {
                              -X POST \
                              --data-binary @- https://api.github.com/repos/tiqsclass6/synk-jenkins/code-scanning/sarifs <<EOF
                         {
-                          "commit_sha": "${COMMIT_SHA}",
-                          "ref": "refs/heads/${REF}",
-                          "sarif": "$(cat snyk.sarif | base64 | tr -d '\\n')"
+                          \"commit_sha\": \"${COMMIT_SHA}\",
+                          \"ref\": \"refs/heads/${REF}\",
+                          \"sarif\": \"$(cat snyk.sarif | base64 | tr -d '\\n')\"
                         }
                         EOF
                         """
@@ -149,10 +122,10 @@ pipeline {
         stage('Plan Terraform') {
             steps {
                 withCredentials([
-                    $class: 'AmazonWebServicesCredentialsBinding',
+                    [$class: 'AmazonWebServicesCredentialsBinding',
                     credentialsId: 'snyk_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
                 ]) {
                     sh '''
                     set -e
@@ -168,10 +141,10 @@ pipeline {
             steps {
                 input message: "Approve Terraform Apply?", ok: "Deploy"
                 withCredentials([
-                    $class: 'AmazonWebServicesCredentialsBinding',
+                    [$class: 'AmazonWebServicesCredentialsBinding',
                     credentialsId: 'snyk_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
                 ]) {
                     sh '''
                     set -e
@@ -193,10 +166,10 @@ pipeline {
             steps {
                 input message: "Do you want to destroy the Terraform resources?", ok: "Destroy"
                 withCredentials([
-                    $class: 'AmazonWebServicesCredentialsBinding',
+                    [$class: 'AmazonWebServicesCredentialsBinding',
                     credentialsId: 'snyk_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
                 ]) {
                     sh '''
                     set -e
