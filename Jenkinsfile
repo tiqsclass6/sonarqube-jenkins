@@ -1,10 +1,5 @@
 pipeline {
-
-agent {
-    docker {
-        image 'node:latest'
-    }
-}
+    agent any
 
     environment {
         AWS_REGION = 'us-east-1' // AWS region
