@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'NodeJS-18' // Uses Node.js installed via Jenkins Global Tool Configuration
+    }
+
     environment {
         AWS_REGION = 'us-east-1' // AWS region
     }
@@ -32,24 +36,10 @@ pipeline {
             }
         }
 
-        stage('Install Node.js & npm') {
-            steps {
-                script {
-                    echo "Installing Node.js and npm..."
-                    sh '''
-                    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-                    sudo apt-get install -y nodejs
-                    node -v
-                    npm -v
-                    '''
-                }
-            }
-        }
-
         stage('Install Snyk') {
             steps {
                 script {
-                    echo "Installing Snyk..."
+                    echo "🔧 Installing Snyk..."
                     sh 'chmod +x snyk.sh && ./snyk.sh'  // Run the uploaded Snyk installation script
                 }
             }
