@@ -39,7 +39,7 @@ pipeline {
                     snykSecurity(
                         organisation: 'TIQS',
                         projectName: 'tiqsclass6/jfrog-cli',
-                        snykInstallation: 'Snyk-API',
+                        snykInstallation: 'SNYK_API',
                         snykTokenId: 'snyk_token',
                         targetFile: 'package.json'
                     )
@@ -79,7 +79,7 @@ pipeline {
             steps {
                 script {
                     snykSecurity(
-                        snykInstallation: 'Snyk-API',
+                        snykInstallation: 'SNYK_API',
                         snykTokenId: 'snyk_token',
                         monitorProjectOnBuild: true,
                         failOnIssues: false
