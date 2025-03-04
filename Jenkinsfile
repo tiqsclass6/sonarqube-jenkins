@@ -48,7 +48,7 @@ pipeline {
             steps {
                 script {
                     echo "Installing Snyk..."
-                    sh 'npm install -g snyk'
+                    sh 'npm install -g snyk snyk-to-sarif'
                     sh 'snyk --version'
                 }
             }
@@ -88,10 +88,28 @@ pipeline {
                     sh 'snyk auth $SNYK_TOKEN'
 
                     echo "Running Snyk security scan on all project files..."
-                    sh 'snyk test --all-projects --org=$SNYK_ORG --project-name=$SNYK_PROJECT || echo "Snyk scan encountered issues, but pipeline continues."'
+                    sh 'snyk test --all-projects --json > snyk.json || echo "Snyk scan encountered issues, but pipeline continues."'
+
+                    echo "Converting Snyk JSON report to SARIF format..."
+                    sh 'snyk-to-sarif < snyk.json > snyk.sarif'
 
                     echo "Publishing project to Snyk.io..."
                     sh 'snyk monitor --org=$SNYK_ORG --project-name=$SNYK_PROJECT'
+                }
+            }
+        }
+
+        stage('Upload SARIF to GitHub Code Scanning') {
+            steps {
+                script {
+                    echo "Uploading SARIF report to GitHub..."
+                    sh '''
+                    curl -H "Authorization: token $TIQS_GITHUB_PAT" \
+                         -H "Accept: application/vnd.github.v3+json" \
+                         https://api.github.com/repos/tiqsclass6/synk-jenkins/code-scanning/sarifs \
+                         -X POST \
+                         -d @snyk.sarif
+                    '''
                 }
             }
         }
