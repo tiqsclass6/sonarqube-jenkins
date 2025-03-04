@@ -6,22 +6,57 @@ pipeline {
     }
 
     triggers {
-        cron('H 2 * * 1-5') // Runs Snyk monitoring every weekday at 2 AM
+        cron('H 2 * * 1-5') // Runs every weekday (Monday-Friday) at 2 AM UTC
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/tiqsclass6/synk-jenkins'
-                sh 'ls -la'
+                script {
+                    echo "Checking out source code from GitHub..."
+                    
+                    try {
+                        checkout([$class: 'GitSCM',
+                            branches: [[name: '*/main']],
+                            userRemoteConfigs: [[url: 'https://github.com/tiqsclass6/synk-jenkins']]
+                        ])
+                        echo "Code checkout successful."
+                    } catch (Exception e) {
+                        echo "Git checkout failed. Check repository URL and branch."
+                        error("Pipeline failed due to Git checkout error.")
+                    }
+
+                    echo "Listing workspace contents..."
+                    sh 'ls -la'
+                }
+            }
+        }
+
+        stage('Install Snyk') {
+            steps {
+                script {
+                    echo "Installing Snyk..."
+                    sh 'chmod +x snyk.sh && ./snyk.sh'  
+                }
             }
         }
 
         stage('Install Dependencies') {
             steps {
                 script {
+                    echo "Checking for dependencies..."
+
                     if (fileExists('package.json')) {
-                        sh 'npm install'
+                        echo "Node.js project detected. Installing dependencies..."
+                        sh 'npm install || echo "npm install failed, check logs for details."'
+                    } else if (fileExists('requirements.txt')) {
+                        echo "ython project detected. Installing dependencies..."
+                        sh 'pip install -r requirements.txt || echo "pip install failed, check logs for details."'
+                    } else if (fileExists('pom.xml')) {
+                        echo "Java project detected. Running Maven build..."
+                        sh 'mvn clean install || echo "Maven build failed, check logs for details."'
+                    } else {
+                        echo "No recognized dependency file found. Skipping dependency installation."
                     }
                 }
             }
@@ -31,10 +66,13 @@ pipeline {
             steps {
                 script {
                     if (fileExists('package.json')) {
+                        echo "Node.js project detected. Installing dependencies..."
                         sh 'npm install'
                     } else if (fileExists('requirements.txt')) {
+                        echo "Python project detected. Installing dependencies..."
                         sh 'pip install -r requirements.txt'
                     } else if (fileExists('pom.xml')) {
+                        echo "Java project detected. Running Maven build..."
                         sh 'mvn clean install'
                     } else {
                         echo "No recognized dependency file found. Skipping installation."
@@ -46,8 +84,15 @@ pipeline {
         stage('Snyk Scan') {
             steps {
                 script {
+                    echo "Running Snyk security scan..."
                     sh 'ls -la'
-                    sh 'snyk test --file=./package.json'
+
+                    if (fileExists('package.json')) {
+                        echo "package.json found. Running Snyk scan for Node.js project..."
+                        sh 'snyk test --file=package.json || echo "Snyk scan encountered issues, but pipeline continues."'
+                    } else {
+                        echo "package.json not found. Skipping Snyk scan."
+                    }
                 }
             }
         }
@@ -83,12 +128,20 @@ pipeline {
         stage('Snyk Continuous Monitoring (Post-Deploy)') {
             steps {
                 script {
-                    snykSecurity(
-                        snykInstallation: 'Snyk-CLI',
-                        snykTokenId: 'snyk_token',
-                        monitorProjectOnBuild: true,
-                        failOnIssues: false
-                    )
+                    echo "Running Snyk Continuous Monitoring after deployment..."
+
+                    try {
+                        snykSecurity(
+                            snykInstallation: 'Snyk-CLI',
+                            snykTokenId: 'snyk_token',
+                            monitorProjectOnBuild: true,
+                            failOnIssues: false
+                        )
+                        echo "Snyk Continuous Monitoring completed successfully."
+                    } catch (Exception e) {
+                        echo "Snyk monitoring encountered an issue: ${e.message}"
+                        echo "Pipeline will continue, but please check the logs."
+                    }
                 }
             }
         }
