@@ -14,6 +14,23 @@ pipeline {
     }
 
     stages {
+        stage('Set AWS Credentials') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'Jenkins1',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    aws sts get-caller-identity
+                    '''
+                }
+            }
+        }
+        
         stage('Checkout Code') {
             steps {
                 script {
@@ -39,7 +56,7 @@ pipeline {
         stage('Install Snyk') {
             steps {
                 script {
-                    echo "🔧 Installing Snyk..."
+                    echo "Installing Snyk..."
                     sh 'chmod +x snyk.sh && ./snyk.sh'  // Run the uploaded Snyk installation script
                 }
             }
@@ -66,25 +83,6 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                script {
-                    if (fileExists('package.json')) {
-                        echo "Node.js project detected. Installing dependencies..."
-                        sh 'npm install'
-                    } else if (fileExists('requirements.txt')) {
-                        echo "Python project detected. Installing dependencies..."
-                        sh 'pip install -r requirements.txt'
-                    } else if (fileExists('pom.xml')) {
-                        echo "Java project detected. Running Maven build..."
-                        sh 'mvn clean install'
-                    } else {
-                        echo "No recognized dependency file found. Skipping installation."
-                    }
-                }
-            }
-        }
-
         stage('Snyk Scan') {
             steps {
                 script {
@@ -101,25 +99,50 @@ pipeline {
             }
         }
 
-        stage('Terraform Setup & Validation') {
+        stage('Initialize Terraform') {
             steps {
-                sh '''
-                terraform init
-                terraform validate
-                '''
+                sh 'terraform init'
             }
         }
 
-        stage('Terraform Plan') {
+       stage('Validate Terraform') {
             steps {
-                sh 'terraform plan -out=tfplan'
+                sh 'terraform validate'
+            }
+        } 
+
+        stage('Plan Terraform') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'Jenkins1',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    terraform plan -out=tfplan
+                    '''
+                }
             }
         }
 
-        stage('Terraform Apply') {
+        stage('Apply Terraform') {
             steps {
                 input message: "Approve Terraform Apply?", ok: "Deploy"
-                sh 'terraform apply -auto-approve tfplan'
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'Jenkins1',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    terraform apply -auto-approve tfplan
+                    '''
+                }
             }
         }
 
@@ -143,19 +166,28 @@ pipeline {
                         )
                         echo "Snyk Continuous Monitoring completed successfully."
                     } catch (Exception e) {
-                        echo "Snyk monitoring encountered an issue: ${e.message}"
+                        echo "Snyk monitoring encountered an issue: ${e}"
                         echo "Pipeline will continue, but please check the logs."
                     }
                 }
             }
         }
 
-        stage('Terraform Destroy') {
+        stage('Destroy Terraform') {
             steps {
-                input message: "Approve Terraform Destroy?", ok: "Destroy"
-                sh '''
-                terraform destroy -auto-approve
-                '''
+                input message: "Do you want to destroy the Terraform resources?", ok: "Destroy"
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'Jenkins1',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    terraform destroy -auto-approve
+                    '''
+                }
             }
         }
     }
