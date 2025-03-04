@@ -52,7 +52,6 @@ pipeline {
             }
         }
 
-        /*
         stage('Terraform Setup & Validation') {
             steps {
                 sh '''
@@ -102,7 +101,6 @@ pipeline {
                 '''
             }
         }
-        */
     }
 
     post {
