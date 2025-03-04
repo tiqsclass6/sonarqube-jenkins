@@ -95,10 +95,11 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
   snyk-to-sarif < snyk.json > snyk.sarif
   ```
 
-- Publishes results to **Snyk.io** for continuous monitoring:
+- Publishes results to **Snyk.io** for continuous monitoring with **correct project tags**:
 
   ```sh
-  snyk monitor --org=<SNYK_ORG> --project-name=<SNYK_PROJECT>
+  snyk monitor --org=<SNYK_ORG> --project-name=<SNYK_PROJECT> \
+      --project-tags="project-owner=Imported_By,environment=Internal,business-criticality=Medium,lifecycle=Sandbox"
   ```
 
 ### **7️⃣ Upload SARIF Report to GitHub Code Scanning**
