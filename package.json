@@ -1,20 +1,22 @@
 {
-    "name": "synk-jenkins-project",
-    "version": "1.0.0",
-    "description": "A sample project to integrate Snyk security scanning in Jenkins",
-    "main": "index.js",
-    "scripts": {
-      "start": "node index.js",
-      "test": "snyk test --file=package.json",
-      "snyk-monitor": "snyk monitor"
-    },
-    "dependencies": {
-      "express": "^4.18.2",
-      "lodash": "^4.17.21"
-    },
-    "devDependencies": {
-      "jest": "^29.6.3",
-      "snyk": "^1.1200.0"
-    },
-    "license": "MIT"
-  }
+  "name": "snyk-jenkins-test",
+  "version": "1.0.1",
+  "description": "A Jenkins-integrated project with Snyk security scanning",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "snyk test --file=package.json",
+    "snyk-monitor": "snyk monitor --org=67615456-3e82-4935-9968-23e1de24cd66 --project-name=snyk-jenkins-test",
+    "snyk-protect": "snyk protect"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "jest": "^29.6.3",
+    "snyk": "^1.1210.0"
+  },
+  "license": "MIT",
+  "snyk": true
+}

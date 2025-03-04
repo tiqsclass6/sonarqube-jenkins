@@ -7,11 +7,9 @@ pipeline {
 
     environment {
         AWS_REGION = 'us-east-1' // AWS region
-        SNYK_TOKEN = credentials('SNYK_TOKEN') 
-    }
-
-    triggers {
-        cron('H 2 * * 1-5') // Runs every weekday (Monday-Friday) at 2 AM UTC
+        SNYK_TOKEN = credentials('SNYK_TOKEN') // Securely retrieves Snyk token from Jenkins credentials
+        SNYK_ORG = '67615456-3e82-4935-9968-23e1de24cd66' // Organization ID
+        SNYK_PROJECT = 'snyk-jenkins-test' // Project name
     }
 
     stages {
@@ -19,7 +17,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'snyk_cred',
+                    credentialsId: 'snyk_cred', // Ensure this is an AWS credential
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
@@ -31,24 +29,16 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Checkout Code') {
             steps {
                 script {
                     echo "Checking out source code from GitHub..."
-                    
-                    try {
-                        checkout([$class: 'GitSCM',
-                            branches: [[name: '*/main']],
-                            userRemoteConfigs: [[url: 'https://github.com/tiqsclass6/synk-jenkins']]
-                        ])
-                        echo "Code checkout successful."
-                    } catch (Exception e) {
-                        echo "Git checkout failed. Check repository URL and branch."
-                        error("Pipeline failed due to Git checkout error.")
-                    }
-
-                    echo "Listing workspace contents..."
+                    checkout([$class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        userRemoteConfigs: [[url: 'https://github.com/tiqsclass6/synk-jenkins']]
+                    ])
+                    echo "Code checkout successful."
                     sh 'ls -la'
                 }
             }
@@ -81,38 +71,27 @@ pipeline {
             steps {
                 script {
                     echo "Checking for dependencies..."
-
                     if (fileExists('package.json')) {
                         echo "Node.js project detected. Installing dependencies..."
-                        sh 'npm install || echo "npm install failed, check logs for details."'
-                    } else if (fileExists('requirements.txt')) {
-                        echo "Python project detected. Installing dependencies..."
-                        sh 'pip install -r requirements.txt || echo "pip install failed, check logs for details."'
-                    } else if (fileExists('pom.xml')) {
-                        echo "Java project detected. Running Maven build..."
-                        sh 'mvn clean install || echo "Maven build failed, check logs for details."'
+                        sh 'npm install'
                     } else {
-                        echo "No recognized dependency file found. Skipping dependency installation."
+                        echo "No package.json found. Skipping dependency installation."
                     }
                 }
             }
         }
 
-        stage('Snyk Scan') {
+        stage('Snyk Scan & Publish to Snyk.io') {
             steps {
                 script {
                     echo "Authenticating with Snyk..."
                     sh 'snyk auth $SNYK_TOKEN'
 
                     echo "Running Snyk security scan..."
-                    sh 'ls -la'
+                    sh 'snyk test --org=$SNYK_ORG --project-name=$SNYK_PROJECT || echo "Snyk scan encountered issues, but pipeline continues."'
 
-                    if (fileExists('package.json')) {
-                        echo "package.json found. Running Snyk scan for Node.js project..."
-                        sh 'snyk test --file=package.json || echo "Snyk scan encountered issues, but pipeline continues."'
-                    } else {
-                        echo "package.json not found. Skipping Snyk scan."
-                    }
+                    echo "Publishing project to Snyk.io..."
+                    sh 'snyk monitor --org=$SNYK_ORG --project-name=$SNYK_PROJECT'
                 }
             }
         }
@@ -127,7 +106,7 @@ pipeline {
             steps {
                 sh 'terraform validate'
             }
-        } 
+        }
 
         stage('Plan Terraform') {
             steps {
@@ -169,27 +148,6 @@ pipeline {
                 echo 'Deploying application...'
             }
         }
-        
-        stage('Snyk Continuous Monitoring (Post-Deploy)') {
-            steps {
-                script {
-                    echo "Running Snyk Continuous Monitoring after deployment..."
-
-                    try {
-                        snykSecurity(
-                            snykInstallation: 'Snyk-CLI',
-                            snykTokenId: 'SNYK_TOKEN',
-                            monitorProjectOnBuild: true,
-                            failOnIssues: false
-                        )
-                        echo "Snyk Continuous Monitoring completed successfully."
-                    } catch (Exception e) {
-                        echo "Snyk monitoring encountered an issue: ${e}"
-                        echo "Pipeline will continue, but please check the logs."
-                    }
-                }
-            }
-        }
 
         stage('Destroy Terraform') {
             steps {
@@ -212,7 +170,7 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline execution completed. Monitoring continues...'
+            echo 'Pipeline execution completed.'
         }
     }
 }
