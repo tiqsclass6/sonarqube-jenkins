@@ -94,7 +94,10 @@ pipeline {
                     sh 'snyk-to-sarif < snyk.json > snyk.sarif'
 
                     echo "Publishing project to Snyk.io..."
-                    sh 'snyk monitor --org=$SNYK_ORG --project-name=$SNYK_PROJECT'
+                    sh '''
+                    snyk monitor --org=$SNYK_ORG --project-name=$SNYK_PROJECT \
+                        --project-tags="project-owner:Imported By,environment:Internal,business-criticality:Medium,lifecycle:Sandbox"
+                    '''
                 }
             }
         }
@@ -110,13 +113,13 @@ pipeline {
 
                         sh """
                         curl -H "Authorization: token $GITHUB_AUTH_TOKEN" \
-                            -H "Accept: application/vnd.github.v3+json" \
-                            -X POST \
-                            -d @- https://api.github.com/repos/tiqsclass6/synk-jenkins/code-scanning/sarifs <<EOF
+                             -H "Accept: application/vnd.github.v3+json" \
+                             -X POST \
+                             --data-binary @- https://api.github.com/repos/tiqsclass6/synk-jenkins/code-scanning/sarifs <<EOF
                         {
-                        "commit_sha": "${COMMIT_SHA}",
-                        "ref": "refs/heads/${REF}",
-                        "sarif": "$(cat snyk.sarif | base64 -w0)"
+                          "commit_sha": "${COMMIT_SHA}",
+                          "ref": "refs/heads/${REF}",
+                          "sarif": "$(cat snyk.sarif | base64 -w0)"
                         }
                         EOF
                         """
@@ -124,8 +127,6 @@ pipeline {
                 }
             }
         }
-
-
 
         stage('Initialize Terraform') {
             steps {
