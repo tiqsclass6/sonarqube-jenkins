@@ -87,8 +87,8 @@ pipeline {
                     echo "Authenticating with Snyk..."
                     sh 'snyk auth $SNYK_TOKEN'
 
-                    echo "Running Snyk security scan..."
-                    sh 'snyk test --org=$SNYK_ORG --project-name=$SNYK_PROJECT || echo "Snyk scan encountered issues, but pipeline continues."'
+                    echo "Running Snyk security scan on all project files..."
+                    sh 'snyk test --all-projects --org=$SNYK_ORG --project-name=$SNYK_PROJECT || echo "Snyk scan encountered issues, but pipeline continues."'
 
                     echo "Publishing project to Snyk.io..."
                     sh 'snyk monitor --org=$SNYK_ORG --project-name=$SNYK_PROJECT'
