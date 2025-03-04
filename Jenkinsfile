@@ -102,12 +102,12 @@ pipeline {
                 '''
             }
         }
+        */
     }
-    */
 
     post {
         always {
             echo 'Pipeline execution completed. Monitoring continues...'
-        }
+        }*/
     }
 }
