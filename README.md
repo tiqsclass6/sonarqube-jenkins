@@ -7,7 +7,6 @@ This repository contains a **Jenkins pipeline** that automates:
 - **Code checkout from GitHub**
 - **Dependency installation**
 - **Security scanning with Snyk**
-- **Generating SARIF reports for GitHub Code Scanning**
 - **Terraform infrastructure deployment**
 - **Application deployment**
 - **Optional Terraform destroy process**
@@ -29,7 +28,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
   ```sh
   aws sts get-caller-identity
   ```
-
+  
   to verify the credentials.
 
 ### **2️⃣ Checkout Code**
@@ -40,7 +39,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
   ```sh
   git checkout main
   ```
-
+  
   to ensure the pipeline is running against the latest version.
 
 ### **3️⃣ Install Snyk**
@@ -50,7 +49,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
   ```sh
   npm install -g snyk snyk-to-sarif
   ```
-
+  
 - Verifies installation using:
 
   ```sh
@@ -77,7 +76,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
   ```sh
   npm install
   ```
-
+  
   if a `package.json` file is found.
 
 ### **6️⃣ Snyk Security Scan & Generate SARIF Report**
@@ -122,7 +121,7 @@ The **Jenkinsfile** defines an automated **CI/CD pipeline** using the following 
   ```sh
   terraform init
   ```
-
+  
   to **initialize Terraform** and configure the backend for storing the state.
 
 ### **9️⃣ Validate Terraform**
@@ -217,4 +216,4 @@ Before running the pipeline, ensure the following **Jenkins configurations**:
 ✅ **SARIF report upload for GitHub Code Scanning**  
 ✅ **Infrastructure automation using Terraform**  
 ✅ **Secure authentication using Jenkins Credentials**  
-✅ **Approval-based Terraform deployment for controlled releases**  
+✅ **Approval-based Terraform deployment for controlled releases**
