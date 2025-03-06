@@ -36,7 +36,7 @@ pipeline {
                     echo "Checking out source code from GitHub..."
                     checkout([$class: 'GitSCM',
                         branches: [[name: '*/main']],
-                        userRemoteConfigs: [[url: 'https://github.com/tiqsclass6/synk-jenkins']]
+                        userRemoteConfigs: [[url: 'https://github.com/tiqsclass6/snyk-jenkins']]
                     ])
                     echo "Code checkout successful."
                     sh 'ls -la'
