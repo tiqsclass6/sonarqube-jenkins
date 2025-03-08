@@ -2,59 +2,39 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'us-east-1'
-        SONARQUBE_TOKEN = credentials('SONARQUBE_TOKEN')
-        SONAR_PROJECT_KEY = 'tiqsclass6_sonarqube-jenkins'
-        SONAR_ORG = 'tiqs'
+        SONAR_SCANNER = tool name: 'SonarQube', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+        SONAR_TOKEN = credentials('SONARQUBE_TOKEN')
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                script {
-                    echo "Checking out source code from GitHub..."
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']],
-                        userRemoteConfigs: [[url: 'https://github.com/tiqsclass6/sonarqube-jenkins']]
-                    ])
-                    echo "Code checkout successful."
-                    sh 'ls -la'
-                }
+                git url: 'https://github.com/tiqsclass6/sonarqube-jenkins.git', branch: 'main'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarCloud') { // Use the actual configured SonarQube installation name
-                    sh '''
-                        sonar-scanner \
+                withSonarQubeEnv('SonarQube') {
+                    sh """
+                        ${SONAR_SCANNER}/bin/sonar-scanner \
                         -Dsonar.projectKey=tiqsclass6_sonarqube-jenkins \
-                        -Dsonar.host.url=https://sonarcloud.io \
                         -Dsonar.organization=tiqs \
-                        -Dsonar.login=$SONARQUBE_TOKEN
-                    '''
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.login=${SONAR_TOKEN} \
+                        -Dsonar.scm.provider=git \
+                        -Dsonar.java.binaries=target/classes \
+                        -Dsonar.sourceEncoding=UTF-8 \
+                        -Dsonar.verbose=true
+                    """
                 }
             }
         }
-
-        stage('Quality Gate Check') {
-            steps {
-                script {
-                    timeout(time: 5, unit: 'MINUTES') {
-                        def qg = waitForQualityGate()
-                        if (qg.status != 'OK') {
-                            echo "WARNING: Quality Gate failed, but continuing build."
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     post {
         always {
-            echo 'Pipeline execution completed.'
+            cleanWs()
         }
     }
 }
