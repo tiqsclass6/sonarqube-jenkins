@@ -22,7 +22,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     script {
-                        def scannerHome = tool 'SonarScanner'
+                        def scannerHome = tool 'SonarScanner1'
                         sh """
                         ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
