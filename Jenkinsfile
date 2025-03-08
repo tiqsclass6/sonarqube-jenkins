@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        SONAR_SCANNER = tool name: 'SonarQube', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+        SONAR_SCANNER = tool 'SonarScanner'
         SONAR_TOKEN = credentials('SONARQUBE_TOKEN')
+        SONAR_PROJECT_URL = 'https://sonarcloud.io/project/overview?id=tiqsclass6_sonarqube-jenkins'
     }
 
     stages {
@@ -15,9 +16,10 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
+                withSonarQubeEnv('SonarQube')
                     sh """
-                        ${SONAR_SCANNER}/bin/sonar-scanner \
+                        export PATH=$SONAR_SCANNER/bin:$PATH
+                        sonar-scanner \
                         -Dsonar.projectKey=tiqsclass6_sonarqube-jenkins \
                         -Dsonar.organization=tiqs \
                         -Dsonar.sources=. \
@@ -29,8 +31,12 @@ pipeline {
                         -Dsonar.verbose=true
                     """
                 }
+                script {
+                    echo "SonarQube analysis complete. View results at: ${SONAR_PROJECT_URL}"
+                }
             }
         }
+    }
 
     post {
         always {
