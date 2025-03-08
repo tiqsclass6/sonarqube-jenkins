@@ -9,8 +9,6 @@ pipeline {
         SONAR_PROJECT_KEY = 'tiqsclass6_sonarqube-jenkins'
         SONAR_PROJECT_NAME = 'SonarQube-Jenkins'
         SONAR_ORG = 'tiqs'
-        JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
-        PATH = "${JAVA_HOME}/bin:${PATH}"
     }
 
     stages {
@@ -26,6 +24,8 @@ pipeline {
                     script {
                         def scannerHome = tool 'SonarScanner1'
                         sh """
+                        export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+                        export PATH=$JAVA_HOME/bin:$PATH
                         ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.projectName=${SONAR_PROJECT_NAME} \
@@ -33,10 +33,15 @@ pipeline {
                             -Dsonar.host.url=${SONAR_HOST_URL} \
                             -Dsonar.language=terraform \
                             -Dsonar.organization=${SONAR_ORG} \
-                            -X // Enable debug mode
+                            -X
                         """
                     }
                 }
+            }
+        }
+
+        stage('Check SonarQube Report') {
+            steps {
                 script {
                     def reportExists = fileExists('report-task.txt')
                     if (!reportExists) {
