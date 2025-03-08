@@ -20,7 +20,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
+                withSonarQubeEnv('SonarCloud') {
                     script {
                         def scannerHome = tool 'SonarScanner1'
                         sh """
@@ -30,22 +30,8 @@ pipeline {
                             -Dsonar.sources=. \
                             -Dsonar.host.url=${SONAR_HOST_URL} \
                             -Dsonar.language=terraform \
-                            -Dsonar.organization=${SONAR_ORG} \
-                            -X
+                            -Dsonar.organization=${SONAR_ORG}
                         """
-                    }
-                }
-
-                // Check for 'report-task.txt' and prompt user if missing
-                script {
-                    def reportExists = fileExists('report-task.txt')
-                    if (!reportExists) {
-                        def userResponse = input message: "SonarScanner did not generate 'report-task.txt'. Continue?", parameters: [
-                            choice(name: 'Proceed', choices: ['Yes', 'No'], description: 'Select Yes to continue, No to stop.')
-                        ]
-                        if (userResponse == 'No') {
-                            error("SonarScanner failed, stopping the build.")
-                        }
                     }
                 }
             }
