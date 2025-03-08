@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SONAR_SCANNER = tool 'SonarScanner' // Ensure the tool name matches Jenkins configuration
+        SONAR_SCANNER = tool 'SonarScanner1'
         SONAR_TOKEN = credentials('SONARQUBE_TOKEN')
         SONAR_PROJECT_URL = 'https://sonarcloud.io/project/overview?id=tiqsclass6_sonarqube-jenkins'
         SONAR_HOST_URL = 'https://sonarcloud.io'
