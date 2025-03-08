@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'us-east-1' // AWS region
-        SONARQUBE_TOKEN = credentials('SONARQUBE_TOKEN') // Securely retrieves SonarQube token from Jenkins credentials
-        SONAR_PROJECT_KEY = 'tiqsclass6_sonarqube-jenkins' // SonarCloud project key
-        SONAR_ORG = 'tiqs' // SonarCloud organization
+        AWS_REGION = 'us-east-1'
+        SONARQUBE_TOKEN = credentials('SONARQUBE_TOKEN')
+        SONAR_PROJECT_KEY = 'tiqsclass6_sonarqube-jenkins'
+        SONAR_ORG = 'tiqs'
     }
 
     stages {
@@ -13,7 +13,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'sonarqube_cred', // Ensure this is an AWS credential
+                    credentialsId: 'sonarqube_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
@@ -45,13 +45,14 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarCloud') {
                     sh '''
-                        sonar-scanner \
-                        -Dsonar.projectKey=tiqsclass6_sonarqube-jenkins \
-                        -Dsonar.organization=tiqs \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=https://sonarcloud.io \
-                        -Dsonar.login=$SONARQUBE_TOKEN
-                        '''
+                    export PATH=$PATH:/opt/sonar-scanner/bin
+                    sonar-scanner \
+                    -Dsonar.projectKey=tiqsclass6_sonarqube-jenkins \
+                    -Dsonar.organization=tiqs \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=https://sonarcloud.io \
+                    -Dsonar.login=$SONARQUBE_TOKEN
+                    '''
                 }
             }
         }
