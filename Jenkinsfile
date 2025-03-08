@@ -1,15 +1,11 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs 'NodeJS-18' // Uses Node.js installed via Jenkins Global Tool Configuration
-    }
-
     environment {
         AWS_REGION = 'us-east-1' // AWS region
-        SNYK_TOKEN = credentials('SNYK_TOKEN') // Securely retrieves Snyk token from Jenkins credentials
-        SNYK_ORG = '67615456-3e82-4935-9968-23e1de24cd66' // Organization ID
-        SNYK_PROJECT = 'snyk-jenkins-test' // Project name
+        SONARQUBE_TOKEN = credentials('SONARQUBE_TOKEN') // Securely retrieves SonarQube token from Jenkins credentials
+        SONAR_PROJECT_KEY = 'tiqsclass6_sonarqube-jenkins' // SonarCloud project key
+        SONAR_ORG = 'tiqs' // SonarCloud organization
     }
 
     stages {
@@ -17,7 +13,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'snyk_cred', // Ensure this is an AWS credential
+                    credentialsId: 'sonarqube_cred', // Ensure this is an AWS credential
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
@@ -34,9 +30,10 @@ pipeline {
             steps {
                 script {
                     echo "Checking out source code from GitHub..."
-                    checkout([$class: 'GitSCM',
+                    checkout([
+                        $class: 'GitSCM',
                         branches: [[name: '*/main']],
-                        userRemoteConfigs: [[url: 'https://github.com/tiqsclass6/snyk-jenkins']]
+                        userRemoteConfigs: [[url: 'https://github.com/tiqsclass6/sonarqube-jenkins']]
                     ])
                     echo "Code checkout successful."
                     sh 'ls -la'
@@ -44,57 +41,17 @@ pipeline {
             }
         }
 
-        stage('Install Snyk') {
+        stage('SonarQube Analysis') {
             steps {
-                script {
-                    echo "Installing Snyk..."
-                    sh 'npm install -g snyk snyk-to-sarif'
-                    sh 'snyk --version'
-                }
-            }
-        }
-
-        stage('Update Dependencies') {
-            steps {
-                script {
-                    echo "Checking for outdated npm packages..."
+                withSonarQubeEnv('SonarCloud') {
                     sh '''
-                    npm install -g npm-check-updates
-                    ncu -u
-                    npm install
+                    sonar-scanner \
+                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                    -Dsonar.organization=${SONAR_ORG} \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=https://sonarcloud.io \
+                    -Dsonar.login=${SONARQUBE_TOKEN}
                     '''
-                }
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                script {
-                    echo "Checking for dependencies..."
-                    if (fileExists('package.json')) {
-                        echo "Node.js project detected. Installing dependencies..."
-                        sh 'npm install'
-                    } else {
-                        echo "No package.json found. Skipping dependency installation."
-                    }
-                }
-            }
-        }
-
-        stage('Snyk Scan & Publish to Snyk.io') {
-            steps {
-                script {
-                    echo "Authenticating with Snyk..."
-                    sh 'snyk auth $SNYK_TOKEN'
-
-                    echo "Running Snyk security scan on all project files..."
-                    sh 'snyk test --all-projects --json > snyk.json || echo "Snyk scan encountered issues, but pipeline continues."'
-
-                    echo "Converting Snyk JSON report to SARIF format..."
-                    sh 'snyk-to-sarif < snyk.json > snyk.sarif'
-
-                    echo "Publishing project to Snyk.io..."
-                    sh 'snyk monitor --org=$SNYK_ORG --project-name=$SNYK_PROJECT'
                 }
             }
         }
@@ -115,7 +72,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'snyk_cred',
+                    credentialsId: 'sonarqube_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
@@ -133,7 +90,7 @@ pipeline {
                 input message: "Approve Terraform Apply?", ok: "Deploy"
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'snyk_cred',
+                    credentialsId: 'sonarqube_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
@@ -157,7 +114,7 @@ pipeline {
                 input message: "Do you want to destroy the Terraform resources?", ok: "Destroy"
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'snyk_cred',
+                    credentialsId: 'sonarqube_cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
