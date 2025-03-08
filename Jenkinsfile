@@ -4,6 +4,10 @@ pipeline {
     environment {
         SONAR_TOKEN = credentials('SONARQUBE_TOKEN')
         SONAR_PROJECT_URL = 'https://sonarcloud.io/project/overview?id=tiqsclass6_sonarqube-jenkins'
+        SONAR_HOST_URL = 'https://sonarcloud.io'
+        SONAR_PROJECT_KEY = 'tiqsclass6_sonarqube-jenkins'
+        SONAR_PROJECT_NAME = 'sonarqube-jenkins'
+        SONAR_ORG = 'tiqs'
     }
 
     stages {
@@ -15,22 +19,19 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh """
-                        sonar-scanner \
-                        -Dsonar.projectKey=tiqsclass6_sonarqube-jenkins \
-                        -Dsonar.organization=tiqs \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=https://sonarcloud.io \
-                        -Dsonar.login=${SONAR_TOKEN} \
-                        -Dsonar.scm.provider=git \
-                        -Dsonar.java.binaries=target/classes \
-                        -Dsonar.sourceEncoding=UTF-8 \
-                        -Dsonar.verbose=true
-                    """
-                }
-                script {
-                    echo "SonarQube analysis complete. View results at: ${SONAR_PROJECT_URL}"
+                withSonarQubeEnv('sq1') {
+                    script {
+                        def scannerHome = tool 'test'
+                        sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.projectName=${SONAR_PROJECT_NAME} \
+                            -Dsonar.sources=. \
+                            -Dsonar.host.url=${SONAR_HOST_URL} \
+                            -Dsonar.language=terraform \
+                            -Dsonar.organization=${SONAR_ORG} 
+                        """
+                    }
                 }
             }
         }
