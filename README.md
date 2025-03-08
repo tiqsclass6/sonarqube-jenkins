@@ -82,7 +82,3 @@ The following environment variables are defined in the pipeline:
 
 - Visit the SonarQube project dashboard at `${SONAR_PROJECT_URL}`.
 - Review code quality metrics and security vulnerabilities.
-
-## License
-
-This project is licensed under the MIT License.
