@@ -16,7 +16,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube')
+                withSonarQubeEnv('SonarQube') {
                     sh """
                         export PATH=$SONAR_SCANNER/bin:$PATH
                         sonar-scanner \
