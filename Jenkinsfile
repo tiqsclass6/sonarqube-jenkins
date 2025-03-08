@@ -45,13 +45,13 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarCloud') {
                     sh '''
-                    sonar-scanner \
-                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                    -Dsonar.organization=${SONAR_ORG} \
-                    -Dsonar.sources=. \
-                    -Dsonar.host.url=https://sonarcloud.io \
-                    -Dsonar.login=${SONARQUBE_TOKEN}
-                    '''
+                        sonar-scanner \
+                        -Dsonar.projectKey=tiqsclass6_sonarqube-jenkins \
+                        -Dsonar.organization=tiqs \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.login=$SONARQUBE_TOKEN
+                        '''
                 }
             }
         }
