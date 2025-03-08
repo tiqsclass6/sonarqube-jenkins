@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        SONAR_SCANNER = tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
         SONAR_TOKEN = credentials('SONARQUBE_TOKEN')
         SONAR_PROJECT_URL = 'https://sonarcloud.io/project/overview?id=tiqsclass6_sonarqube-jenkins'
     }
@@ -18,7 +17,6 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh """
-                        export PATH=$SONAR_SCANNER/bin:$PATH
                         sonar-scanner \
                         -Dsonar.projectKey=tiqsclass6_sonarqube-jenkins \
                         -Dsonar.organization=tiqs \
