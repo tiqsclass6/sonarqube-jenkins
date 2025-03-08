@@ -9,6 +9,8 @@ pipeline {
         SONAR_PROJECT_KEY = 'tiqsclass6_sonarqube-jenkins'
         SONAR_PROJECT_NAME = 'SonarQube-Jenkins'
         SONAR_ORG = 'tiqs'
+        JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
+        PATH = "${JAVA_HOME}/bin:${PATH}"
     }
 
     stages {
@@ -30,8 +32,20 @@ pipeline {
                             -Dsonar.sources=. \
                             -Dsonar.host.url=${SONAR_HOST_URL} \
                             -Dsonar.language=terraform \
-                            -Dsonar.organization=${SONAR_ORG}
+                            -Dsonar.organization=${SONAR_ORG} \
+                            -X // Enable debug mode
                         """
+                    }
+                }
+                script {
+                    def reportExists = fileExists('report-task.txt')
+                    if (!reportExists) {
+                        def userResponse = input message: "SonarScanner did not generate 'report-task.txt'. Continue?", parameters: [
+                            choice(name: 'Proceed', choices: ['Yes', 'No'], description: 'Select Yes to continue, No to stop.')
+                        ]
+                        if (userResponse == 'No') {
+                            error("SonarScanner failed, stopping the build.")
+                        }
                     }
                 }
             }
